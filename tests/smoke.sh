@@ -87,6 +87,10 @@ for path, theme in ((social_path, social), (island_path, island)):
     assert "yulin807" not in path.read_text()
     assert theme["ui"]["window_title"] in {"Herdr Social Glass", "Herdr Island Glass"}
 
+short_version = ".".join(manifest["version"].split(".")[:2])
+for relative in ("scripts/status.sh", "scripts/guide.sh"):
+    assert short_version in (manifest_path.parent / relative).read_text(), f"{relative} lacks version {short_version}"
+
 for relative in (
     "scripts/apply-island.sh",
     "scripts/apply-preset.sh",

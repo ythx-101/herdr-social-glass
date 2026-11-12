@@ -65,7 +65,7 @@ config = tomllib.loads(pathlib.Path(sys.argv[1]).read_text())
 assert config["ui"]["window_title"] == sys.argv[2]
 PY
 cmp -s "$TEST_ROOT/original.toml" "$HERDR_PLUGIN_STATE_DIR/baseline-config.toml" || fail 'baseline was not preserved'
-[[ "$(stat -f '%Lp' "$HERDR_CONFIG_PATH")" == 600 ]] || fail 'active config mode is not 600'
+[[ "$(stat -c '%a' "$HERDR_CONFIG_PATH" 2>/dev/null || stat -f '%Lp' "$HERDR_CONFIG_PATH")" == 600 ]] || fail 'active config mode is not 600'
 assert_contains "$MOCK_HERDR_LOG" 'server reload-config'
 assert_contains "$MOCK_HERDR_LOG" 'config check'
 
@@ -130,6 +130,9 @@ mv "$TEST_ROOT/window-title.disabled" "$HERDR_PLUGIN_CONFIG_DIR/window-title.txt
 printf '%s\n' 'Restored title' > "$HERDR_PLUGIN_CONFIG_DIR/window-title.txt"
 bash "$ROOT/scripts/restore.sh"
 cmp -s "$TEST_ROOT/original.toml" "$HERDR_CONFIG_PATH" || fail 'restore did not recover original baseline'
+RESTORE_BACKUPS=("$HERDR_PLUGIN_STATE_DIR"/backups/before-restore-*.toml)
+[[ -f "${RESTORE_BACKUPS[0]}" ]] || fail 'restore did not write a before-restore backup'
+[[ "$(stat -c '%a' "${RESTORE_BACKUPS[0]}" 2>/dev/null || stat -f '%Lp' "${RESTORE_BACKUPS[0]}")" == 600 ]] || fail 'before-restore backup mode is not 600'
 
 printf 'local_marker = true\n' >> "$HERDR_CONFIG_PATH"
 MODIFIED_STATUS="$TEST_ROOT/modified-status.txt"
@@ -171,6 +174,20 @@ if HERDR_ISLAND_BACKGROUND='rgb(1,2,3)' bash "$ROOT/scripts/open-island-window.s
 fi
 assert_contains "$TEST_ROOT/invalid-background.err" 'Invalid Island background color'
 cmp -s "$TEST_ROOT/island-valid.args" "$MOCK_OSASCRIPT_ARGS" || fail 'invalid background reached osascript'
+
+# Without herdr on PATH, the launcher must fail loudly and never reach osascript.
+mkdir -p "$TEST_ROOT/osabin"
+cp "$TEST_ROOT/bin/osascript" "$TEST_ROOT/osabin/osascript"
+if PATH="$TEST_ROOT/osabin:/usr/bin:/bin" command -v herdr > /dev/null 2>&1; then
+  printf 'skipping missing-herdr check: herdr found in /usr/bin or /bin\n'
+else
+  : > "$TEST_ROOT/missing-herdr.args"
+  if /usr/bin/env -u HERDR_BIN_PATH PATH="$TEST_ROOT/osabin:/usr/bin:/bin" MOCK_OSASCRIPT_ARGS="$TEST_ROOT/missing-herdr.args" bash "$ROOT/scripts/open-social-window.sh" > /dev/null 2> "$TEST_ROOT/missing-herdr.err"; then
+    fail 'launcher succeeded without herdr'
+  fi
+  assert_contains "$TEST_ROOT/missing-herdr.err" 'herdr was not found'
+  [[ ! -s "$TEST_ROOT/missing-herdr.args" ]] || fail 'osascript was invoked without herdr'
+fi
 
 if find "$(dirname "$HERDR_CONFIG_PATH")" -maxdepth 1 -type f \( -name '*.social-glass.*' -o -name '*.island-glass.*' \) | grep -q .; then
   fail 'temporary config file was left behind'

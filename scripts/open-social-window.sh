@@ -2,7 +2,11 @@
 set -euo pipefail
 
 PROFILE="${HERDR_SOCIAL_TERMINAL_PROFILE:-Clear Light}"
-HERDR="${HERDR_BIN_PATH:-$(command -v herdr)}"
+HERDR="${HERDR_BIN_PATH:-$(command -v herdr || true)}"
+if [[ -z "$HERDR" ]]; then
+  echo 'herdr was not found on PATH; set HERDR_BIN_PATH or install Herdr first.' >&2
+  exit 1
+fi
 WINDOW_TITLE="${HERDR_SOCIAL_WINDOW_TITLE:-Herdr Social Glass}"
 
 if [[ "$#" -ne 0 && "$#" -ne 2 ]]; then

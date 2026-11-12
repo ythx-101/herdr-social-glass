@@ -1,0 +1,38 @@
+# Herdr Social Glass
+
+> A Herdr plugin for macOS with two screenshot-friendly workspace themes (Social Glass and Island Glass, both on Catppuccin Latte) plus macOS Terminal window launchers. Every apply is validated, backed up, and reversible with one `restore` action.
+
+## What it does
+
+- `apply`: validate and apply the Social Glass preset (translucent, lavender accent).
+- `apply-island`: validate and apply the Island Glass preset (warm cream sidebar).
+- `open-window`: open macOS Terminal with the `Clear Light` profile and start Herdr.
+- `open-island-window`: same, with per-window OSC 10/11 text and background colors.
+- `status`: report the Herdr version and whether Social Glass, Island Glass, or a local modification is active.
+- `restore`: back up the current config, restore the saved pre-theme baseline, and reload Herdr.
+
+## Install & quick start
+
+```bash
+herdr plugin install ythx-101/herdr-social-glass
+herdr plugin action invoke apply --plugin linyu.social-glass        # or apply-island
+herdr plugin action invoke open-window --plugin linyu.social-glass  # or open-island-window
+herdr plugin action invoke restore --plugin linyu.social-glass      # back to your original config
+```
+
+## Safety model
+
+Apply replaces the entire Herdr config (no key merging). It validates the rendered preset with Herdr, backs up the current config, records the first existing config as the restore baseline, and rolls back if Herdr rejects the reload. `restore` returns to that baseline; uninstalling the plugin does not.
+
+## Requirements
+
+- macOS (Bash and AppleScript) and Herdr 0.8.2 or newer
+- macOS Terminal with the built-in `Clear Light` profile, for the window actions
+
+## Not for
+
+Linux or Windows (the manifest declares macOS only), or changing only a few colors while keeping the rest of your own Herdr config.
+
+## Files
+
+- README.md (docs, comparison table, FAQ), herdr-plugin.toml (manifest), theme/*.toml (presets), scripts/ (action scripts)
